@@ -1,0 +1,83 @@
+---
+
+------
+title: "finaltest"
+author: "Your Name"
+format: html
+editor: visual
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+# 특정 회차의 로또 당첨 번호를 가져오는 함수
+get_lotto_numbers <- function(draw_no) {
+  url <- paste0("https://www.dhlottery.co.kr/gameResult.do?method=byWin&drwNo=", draw_no)
+  page <- read_html(url)
+  
+  # 페이지에서 번호를 추출
+  numbers <- page %>%
+    html_nodes(".ball_645") %>%
+    html_text() %>%
+    as.numeric()
+  
+  print(numbers) # 디버깅을 위해 번호 출력
+  
+  if (length(numbers) >= 6) { # 6개의 번호가 제대로 추출되면 반환
+    return(numbers[1:6]) # 보너스 번호를 제외한 6개 번호만 반환
+  } else { # 그렇지 않으면 NULL 반환
+    return(NULL)
+  }
+}
+
+# 크롤링할 회차
+draws <- 1124:1120
+
+# 모든 번호를 저장할 빈 벡터 초기화
+all_numbers <- c()
+
+for (draw_no in draws) {
+  Sys.sleep(2)  # 서버 부하를 방지하기 위해 2초 대기
+  draw_numbers <- get_lotto_numbers(draw_no)
+  
+  if (!is.null(draw_numbers)) { # 유효한 번호가 추출되면
+    print(paste("Draw", draw_no, "numbers:", paste(draw_numbers, collapse = ", "))) # 디버깅을 위해 출력
+    all_numbers <- c(all_numbers, draw_numbers)
+  }
+}
+
+# 수집된 번호가 있을 경우
+if (length(all_numbers) > 0) {
+  # 데이터 프레임으로 변환
+  numbers_df <- as.data.frame(table(all_numbers))
+  colnames(numbers_df) <- c("Number", "Frequency")
+
+  # 디버깅을 위한 데이터 프레임 출력
+  print(numbers_df)
+
+  # 결과를 시각화
+  ggplot(numbers_df, aes(x=Number, y=Frequency)) +
+    geom_bar(stat="identity", fill="steelblue") +
+    theme_minimal() +
+    labs(title="Frequency of Lotto Winning Numbers", x="Number", y="Frequency") +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+} else {
+  print("No numbers were collected.")
+}
+
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
